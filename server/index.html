@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<body>
+  <pre id="output"></pre>
+  <div style="border: 1px solid black">
+    <canvas id="canvas" style="width: 100%"></canvas>
+  </div>
+  <script>
+    function getColorCode() {
+      const makeColorCode = "0123456789ABCDEF";
+      let code = "#";
+      for (let count = 0; count < 6; count++) {
+        code = code + makeColorCode[Math.floor(Math.random() * 16)];
+      }
+      return code;
+    }
+
+    let clientId = null;
+    let state = null;
+    const socket = new WebSocket("ws://localhost:8080/ws");
+    const mycolor = getColorCode();
+
+    socket.onopen = function () {
+      output.innerHTML += "Status: Connected\n";
+
+      const msg = JSON.stringify({
+        type: "UPDATE_PLAYER_DATA",
+        data: JSON.stringify({
+          name: "foobar",
+          x: 0,
+          y: 0,
+          color: mycolor,
+        }),
+      });
+      socket.send(msg);
+    };
+
+    socket.onmessage = function (e) {
+      const msg = JSON.parse(e.data);
+
+      switch (msg.type) {
+        case "SET_CLIENT_ID":
+          clientId = msg.data;
+          break;
+        case "UPDATE_GAME_STATE":
+          state = JSON.parse(msg.data);
+          break;
+        default:
+          break;
+      }
+    };
+    const updateMyPosition = (pos) => {
+      const msg = JSON.stringify({
+        type: "UPDATE_PLAYER_DATA",
+        data: JSON.stringify({
+          name: "foobar",
+          x: pos.x,
+          y: pos.y,
+          color: mycolor,
+        }),
+      });
+      socket.send(msg);
+    };
+
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.addEventListener(
+      "mousemove",
+      (e) => {
+        const pos = {
+          x: e.offsetX,
+          y: e.offsetY,
+        };
+
+        updateMyPosition(pos);
+      },
+      false
+    );
+
+    const drawPlayer = (ctx, player) => {
+      ctx.fillStyle = player?.color ?? "#FFF";
+      ctx.fillRect(player?.x ?? 0, player?.y ?? 0, 10, 10);
+    };
+
+    const drawMe = (ctx) => {
+      const me = state?.players?.[clientId];
+      drawPlayer(ctx, me);
+    };
+
+    const drawOthers = (ctx) => {
+      Object.keys(state?.players ?? {}).forEach((id) => {
+        if (id !== clientId) {
+          drawPlayer(ctx, state?.players[id]);
+        }
+      });
+    };
+
+    const draw = (ctx) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawMe(ctx);
+      drawOthers(ctx);
+    };
+
+    setInterval(() => draw(context), 16);
+  </script>
+</body>

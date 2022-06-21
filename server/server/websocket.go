@@ -119,7 +119,12 @@ func (s *WebhookServer) Broadcast(message *api.Message) {
 }
 
 func (s *WebhookServer) startHttpServer() {
+
 	http.HandleFunc("/ws", s.addClientHandler)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.html")
+	})
+
 	logger.Info("running websocket server on port :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Fatal("http server quit", zap.Error(err))

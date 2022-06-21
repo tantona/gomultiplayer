@@ -16,6 +16,10 @@ var logger = logging.New("state")
 type PlayerData struct {
 	Name  string `json:"name"`
 	Score int    `json:"score"`
+
+	X     int    `json:"x"`
+	Y     int    `json:"y"`
+	Color string `json:"color"`
 }
 
 func messageToPlayerData(data string) (*PlayerData, error) {

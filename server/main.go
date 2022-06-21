@@ -19,6 +19,7 @@ func main() {
 
 	go server.Run()
 
+	logger.Info("Waiting for Clients")
 	for {
 		select {
 		case msg := <-server.GetMessageChan():
