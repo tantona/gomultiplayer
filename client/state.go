@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"tantona/gomultiplayer/server/api"
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 	"tantona/gomultiplayer/server/state"
 
 	"github.com/google/uuid"
@@ -45,12 +45,12 @@ func (c *ClientState) SetGameState(gs *GameState) {
 
 }
 
-func (c *ClientState) MessageHandler(msg *api.Message) {
+func (c *ClientState) MessageHandler(msg *multiplayer_v1.Message) {
 	logger.Debug("received msg", zap.Any("msg", msg))
 
 	switch msg.Type {
 
-	case api.SetClientId:
+	case multiplayer_v1.MessageType_SET_CLIENT_ID:
 		clientId, err := uuid.Parse(msg.Data)
 		logger.Debug("set client id", zap.Stringer("clientId", clientId))
 		if err != nil {
@@ -60,7 +60,7 @@ func (c *ClientState) MessageHandler(msg *api.Message) {
 			c.SetClientId(clientId)
 		}
 
-	case api.UpdateGameState:
+	case multiplayer_v1.MessageType_UPDATE_GAME_STATE:
 		state, err := ToGameState(msg.Data)
 		if err != nil {
 			logger.Debug("error", zap.Error(err))

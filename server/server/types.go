@@ -1,16 +1,16 @@
 package server
 
 import (
-	"tantona/gomultiplayer/server/api"
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 type Server interface {
-	Broadcast(message *api.Message)
+	Broadcast(message *multiplayer_v1.Message)
 	AddClient(*websocket.Conn) uuid.UUID
-	GetMessageChan() chan *api.Message
+	GetMessageChan() chan *multiplayer_v1.Message
 	Run()
 }
 

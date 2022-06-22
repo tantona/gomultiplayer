@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package multiplayer.v1;
+
+option go_package = "multiplayer/v1;multiplayer_v1";
+
+enum MessageType {
+  UNSPECIFIED = 0;
+  UPDATE_PLAYER_DATA = 1;
+  UPDATE_GAME_STATE = 2;
+  SET_CLIENT_ID = 3;
+  DISCONNECT_CLIENT = 4;
+  CLIENT_ADDED = 5;
+}
+
+message Message {
+  MessageType type = 1;
+  string data = 2;
+  string client_id = 3;
+}

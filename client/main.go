@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"tantona/gomultiplayer/server/api"
-	"tantona/gomultiplayer/server/logging"
-	"tantona/gomultiplayer/server/state"
-
 	"os"
 	"os/signal"
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
+	"tantona/gomultiplayer/server/logging"
+	"tantona/gomultiplayer/server/state"
 
 	"github.com/google/uuid"
 	"github.com/jaswdr/faker"
@@ -23,13 +22,13 @@ var clientState = &ClientState{
 	},
 }
 
-func createUpdatePlayerMsg(data *state.PlayerData) (*api.Message, error) {
+func createUpdatePlayerMsg(data *state.PlayerData) (*multiplayer_v1.Message, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.Message{Type: api.UpdatePlayerData, Data: string(b)}, nil
+	return &multiplayer_v1.Message{Type: multiplayer_v1.MessageType_UPDATE_PLAYER_DATA, Data: string(b)}, nil
 }
 
 func main() {
@@ -58,7 +57,7 @@ func main() {
 		case msg := <-client.Messages:
 			logger.Debug("received msg", zap.Any("msg", msg))
 			switch msg.Type {
-			case api.SetClientId:
+			case multiplayer_v1.MessageType_SET_CLIENT_ID:
 				clientId, err := uuid.Parse(msg.Data)
 				logger.Debug("set client id", zap.Stringer("clientId", clientId))
 				if err != nil {
@@ -73,7 +72,7 @@ func main() {
 					return
 				}
 
-			case api.UpdateGameState:
+			case multiplayer_v1.MessageType_UPDATE_GAME_STATE:
 				state, err := ToGameState(msg.Data)
 				if err != nil {
 					logger.Debug("error", zap.Error(err))

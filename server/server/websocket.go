@@ -1,28 +1,29 @@
 package server
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
-	"tantona/gomultiplayer/server/api"
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 	"tantona/gomultiplayer/server/logging"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var logger = logging.New("server")
 var upgrader = websocket.Upgrader{} // use default options
 
 type WebhookServer struct {
-	MessageChan chan *api.Message
+	MessageChan chan *multiplayer_v1.Message
 	ClientChan  chan *Client
 	Clients     []*Client
 }
 
 func (s *WebhookServer) setupClientListener(c *Client) {
+
 	c.isListening = true
 	logger.Debug("listening for messages from client", zap.Stringer("clientId", c.Id))
 	for {
@@ -54,13 +55,12 @@ func (s *WebhookServer) setupClientListener(c *Client) {
 
 		switch mt {
 		case websocket.TextMessage:
-			msg := &api.Message{}
-			if err := json.Unmarshal(b, msg); err != nil {
+			msg := &multiplayer_v1.Message{}
+			if err := protojson.Unmarshal(b, msg); err != nil {
 				logger.Error("unable to unmarshal message", zap.Stringer("Type", msg.Type))
-				return
 			}
 
-			msg.ClientId = c.Id
+			msg.ClientId = c.Id.String()
 			s.MessageChan <- msg
 
 		default:
@@ -110,7 +110,7 @@ func (s *WebhookServer) removeClient(id uuid.UUID) error {
 	return nil
 }
 
-func (s *WebhookServer) Broadcast(message *api.Message) {
+func (s *WebhookServer) Broadcast(message *multiplayer_v1.Message) {
 	for _, c := range s.Clients {
 		if err := c.conn.WriteJSON(message); err != nil {
 			logger.Error("error sending message", zap.Error(err))
@@ -122,7 +122,7 @@ func (s *WebhookServer) startHttpServer() {
 
 	http.HandleFunc("/ws", s.addClientHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.html")
+		http.ServeFile(w, r, "server/index.html")
 	})
 
 	logger.Info("running websocket server on port :8080")
@@ -151,10 +151,10 @@ func (s *WebhookServer) addClientHandler(w http.ResponseWriter, r *http.Request)
 
 	clientId := s.AddClient(c)
 
-	c.WriteJSON(&api.Message{Type: api.SetClientId, Data: clientId.String()})
+	c.WriteJSON(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()})
 }
 
-func (s *WebhookServer) GetMessageChan() chan *api.Message {
+func (s *WebhookServer) GetMessageChan() chan *multiplayer_v1.Message {
 	return s.MessageChan
 }
 

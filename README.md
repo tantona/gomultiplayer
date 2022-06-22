@@ -1,19 +1,27 @@
 # gomultiplayer
 
+
+## Getting Started
+
+```
+go get ./...
+buf generate
+```
+
 ## Server
 
 ```bash
-cd server
-go get ./...
-
-go run *.go
+go run server/*.go
 ```
 
 ## Client (for testing)
 
 ```bash
-cd client
-go get ./...
+go run client/*.go
+```
 
-go run *.go
+## HTML Canvas
+
+```
+open http://localhost:8080
 ```

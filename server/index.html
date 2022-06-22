@@ -5,6 +5,24 @@
     <canvas id="canvas" style="width: 100%"></canvas>
   </div>
   <script>
+    const MESSAGE_TYPES = {
+      UNSPECIFIED: 0,
+      UPDATE_PLAYER_DATA: 1,
+      UPDATE_GAME_STATE: 2,
+      SET_CLIENT_ID: 3,
+      DISCONNECT_CLIENT: 4,
+      CLIENT_ADDED: 5,
+    };
+
+    const MESSAGE_TYPES_VALUES = {
+      UNSPECIFIED: "UNSPECIFIED",
+      UPDATE_PLAYER_DATA: "UPDATE_PLAYER_DATA",
+      UPDATE_GAME_STATE: "UPDATE_GAME_STATE",
+      SET_CLIENT_ID: "SET_CLIENT_ID",
+      DISCONNECT_CLIENT: "DISCONNECT_CLIENT",
+      CLIENT_ADDED: "CLIENT_ADDED",
+    };
+
     function getColorCode() {
       const makeColorCode = "0123456789ABCDEF";
       let code = "#";
@@ -23,7 +41,7 @@
       output.innerHTML += "Status: Connected\n";
 
       const msg = JSON.stringify({
-        type: "UPDATE_PLAYER_DATA",
+        type: MESSAGE_TYPES_VALUES.UPDATE_PLAYER_DATA,
         data: JSON.stringify({
           name: "foobar",
           x: 0,
@@ -38,11 +56,13 @@
       const msg = JSON.parse(e.data);
 
       switch (msg.type) {
-        case "SET_CLIENT_ID":
+        case MESSAGE_TYPES.SET_CLIENT_ID:
           clientId = msg.data;
+
           break;
-        case "UPDATE_GAME_STATE":
+        case MESSAGE_TYPES.UPDATE_GAME_STATE:
           state = JSON.parse(msg.data);
+
           break;
         default:
           break;
@@ -50,7 +70,7 @@
     };
     const updateMyPosition = (pos) => {
       const msg = JSON.stringify({
-        type: "UPDATE_PLAYER_DATA",
+        type: MESSAGE_TYPES_VALUES.UPDATE_PLAYER_DATA,
         data: JSON.stringify({
           name: "foobar",
           x: pos.x,

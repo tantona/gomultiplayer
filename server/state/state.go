@@ -3,11 +3,10 @@ package state
 import (
 	"encoding/json"
 	"sync"
-	"tantona/gomultiplayer/server/api"
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 	"tantona/gomultiplayer/server/logging"
 	"tantona/gomultiplayer/server/server"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -32,26 +31,26 @@ func messageToPlayerData(data string) (*PlayerData, error) {
 }
 
 type GameState struct {
-	mut     sync.Mutex                `json:"-"`
-	Server  server.Server             `json:"-"`
-	Players map[uuid.UUID]*PlayerData `json:"players"`
+	mut     sync.Mutex             `json:"-"`
+	Server  server.Server          `json:"-"`
+	Players map[string]*PlayerData `json:"players"`
 }
 
-func (gs *GameState) UpdatePlayerData(id uuid.UUID, data *PlayerData) {
+func (gs *GameState) UpdatePlayerData(id string, data *PlayerData) {
 	gs.mut.Lock()
 	defer gs.mut.Unlock()
 
 	gs.Players[id] = data
 }
 
-func (gs *GameState) RemovePlayer(id uuid.UUID) {
+func (gs *GameState) RemovePlayer(id string) {
 	gs.mut.Lock()
 	defer gs.mut.Unlock()
 
 	delete(gs.Players, id)
 }
 
-func (gs *GameState) UpdatePlayerDataHandler(msg *api.Message) {
+func (gs *GameState) UpdatePlayerDataHandler(msg *multiplayer_v1.Message) {
 	data, err := messageToPlayerData(msg.Data)
 	if err != nil {
 		logger.Error("unable to parse game state")
@@ -70,13 +69,13 @@ func (gs *GameState) Broadcast() {
 		return
 	}
 	logger.Info("broadcast game state", zap.String("state", string(b)))
-	gs.Server.Broadcast(&api.Message{Type: api.UpdateGameState, Data: string(b)})
+	gs.Server.Broadcast(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_UPDATE_GAME_STATE, Data: string(b)})
 }
 
-func (gs *GameState) MessageHandler(msg *api.Message) {
+func (gs *GameState) MessageHandler(msg *multiplayer_v1.Message) {
 	logger.Info("received message", zap.Any("msg", msg))
 
-	if msg.Type == api.UpdatePlayerData {
+	if msg.Type == multiplayer_v1.MessageType_UPDATE_PLAYER_DATA {
 		gs.UpdatePlayerDataHandler(msg)
 	}
 }
@@ -84,6 +83,6 @@ func (gs *GameState) MessageHandler(msg *api.Message) {
 func New(server server.Server) *GameState {
 	return &GameState{
 		Server:  server,
-		Players: make(map[uuid.UUID]*PlayerData),
+		Players: make(map[string]*PlayerData),
 	}
 }

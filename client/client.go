@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"tantona/gomultiplayer/server/api"
 	"tantona/gomultiplayer/server/state"
+
+	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -31,7 +32,7 @@ type Client struct {
 	url      string
 	conn     *websocket.Conn
 	done     chan struct{}
-	Messages chan *api.Message
+	Messages chan *multiplayer_v1.Message
 }
 
 func (c *Client) Connect() error {
@@ -52,7 +53,7 @@ func (c *Client) Listen() {
 	defer close(c.done)
 	for {
 
-		msg := &api.Message{}
+		msg := &multiplayer_v1.Message{}
 		if err := c.conn.ReadJSON(msg); err != nil {
 			log.Println("read json err:", msg, err)
 			return
@@ -62,7 +63,7 @@ func (c *Client) Listen() {
 	}
 }
 
-func (c *Client) Send(message *api.Message) error {
+func (c *Client) Send(message *multiplayer_v1.Message) error {
 	b, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -91,6 +92,6 @@ func NewClient(url string, done chan struct{}) *Client {
 	return &Client{
 		url:      url,
 		done:     make(chan struct{}),
-		Messages: make(chan *api.Message),
+		Messages: make(chan *multiplayer_v1.Message),
 	}
 }
