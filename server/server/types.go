@@ -9,6 +9,7 @@ import (
 
 type Server interface {
 	Broadcast(message *multiplayer_v1.Message)
+	BroadcastBinary(message *multiplayer_v1.Message)
 	AddClient(*websocket.Conn) uuid.UUID
 	GetMessageChan() chan *multiplayer_v1.Message
 	Run()

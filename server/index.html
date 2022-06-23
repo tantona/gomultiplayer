@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <body>
   <pre id="output"></pre>
-  <div style="border: 1px solid black">
-    <canvas id="canvas" style="width: 100%"></canvas>
-  </div>
+
+  <canvas id="canvas" width="500" height="500" style="border: 1px solid black"></canvas>
+
   <script>
     const MESSAGE_TYPES = {
       UNSPECIFIED: 0,
@@ -34,14 +34,14 @@
 
     let clientId = null;
     let state = null;
-    const socket = new WebSocket("ws://localhost:8080/ws");
+    const socket = new WebSocket("ws://localhost:8080/wsb");
     const mycolor = getColorCode();
 
     socket.onopen = function () {
       output.innerHTML += "Status: Connected\n";
 
       const msg = JSON.stringify({
-        type: MESSAGE_TYPES_VALUES.UPDATE_PLAYER_DATA,
+        type: MESSAGE_TYPES.UPDATE_PLAYER_DATA,
         data: JSON.stringify({
           name: "foobar",
           x: 0,
@@ -49,18 +49,19 @@
           color: mycolor,
         }),
       });
-      socket.send(msg);
+
+      sendBinary(msg);
     };
 
-    socket.onmessage = function (e) {
-      const msg = JSON.parse(e.data);
+    const setState = (data) => {
+      const msg = JSON.parse(data);
 
       switch (msg.type) {
-        case MESSAGE_TYPES.SET_CLIENT_ID:
+        case MESSAGE_TYPES_VALUES.SET_CLIENT_ID:
           clientId = msg.data;
 
           break;
-        case MESSAGE_TYPES.UPDATE_GAME_STATE:
+        case MESSAGE_TYPES_VALUES.UPDATE_GAME_STATE:
           state = JSON.parse(msg.data);
 
           break;
@@ -68,9 +69,33 @@
           break;
       }
     };
+
+    socket.onmessage = function (e) {
+      if (e.data instanceof Blob) {
+        e.data.text().then(setState);
+      } else {
+        setState(e.data);
+      }
+    };
+
+    const getState = () => {
+      return state;
+    };
+
+    const getClientId = () => {
+      return clientId;
+    };
+
+    const sendBinary = (msg) => {
+      const bytes = new TextEncoder().encode(msg);
+      const blob = new Blob([bytes]);
+
+      socket.send(blob);
+    };
+
     const updateMyPosition = (pos) => {
       const msg = JSON.stringify({
-        type: MESSAGE_TYPES_VALUES.UPDATE_PLAYER_DATA,
+        type: MESSAGE_TYPES.UPDATE_PLAYER_DATA,
         data: JSON.stringify({
           name: "foobar",
           x: pos.x,
@@ -78,7 +103,8 @@
           color: mycolor,
         }),
       });
-      socket.send(msg);
+
+      sendBinary(msg);
     };
 
     const canvas = document.getElementById("canvas");
@@ -87,6 +113,7 @@
     canvas.addEventListener(
       "mousemove",
       (e) => {
+        console.log(e.clientX, e.clientY, e.offsetX, e.offsetY);
         const pos = {
           x: e.offsetX,
           y: e.offsetY,

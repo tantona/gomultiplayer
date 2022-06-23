@@ -55,9 +55,18 @@ func (s *WebhookServer) setupClientListener(c *Client) {
 
 		switch mt {
 		case websocket.TextMessage:
+			logger.Debug("UNMARSHAL TEXT", zap.ByteString("msg", b))
 			msg := &multiplayer_v1.Message{}
 			if err := protojson.Unmarshal(b, msg); err != nil {
-				logger.Error("unable to unmarshal message", zap.Stringer("Type", msg.Type))
+				logger.Error("unable to unmarshal text message", zap.Stringer("Type", msg.Type))
+			}
+
+			msg.ClientId = c.Id.String()
+			s.MessageChan <- msg
+		case websocket.BinaryMessage:
+			msg := &multiplayer_v1.Message{}
+			if err := protojson.Unmarshal(b, msg); err != nil {
+				logger.Error("unable to unmarshal binary message", zap.Stringer("Type", msg.Type))
 			}
 
 			msg.ClientId = c.Id.String()
@@ -118,9 +127,22 @@ func (s *WebhookServer) Broadcast(message *multiplayer_v1.Message) {
 	}
 }
 
+func (s *WebhookServer) BroadcastBinary(message *multiplayer_v1.Message) {
+	b, err := protojson.Marshal(message)
+	if err != nil {
+		logger.Error("error marshalling message", zap.Error(err))
+	}
+	for _, c := range s.Clients {
+		if err := c.conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
+			logger.Error("error sending message", zap.Error(err))
+		}
+	}
+}
+
 func (s *WebhookServer) startHttpServer() {
 
 	http.HandleFunc("/ws", s.addClientHandler)
+	http.HandleFunc("/wsb", s.addClientHandlerBinary)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "server/index.html")
 	})
@@ -152,6 +174,23 @@ func (s *WebhookServer) addClientHandler(w http.ResponseWriter, r *http.Request)
 	clientId := s.AddClient(c)
 
 	c.WriteJSON(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()})
+}
+
+func (s *WebhookServer) addClientHandlerBinary(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		logger.Error("upgrade:", zap.Error(err))
+		return
+	}
+
+	clientId := s.AddClient(c)
+	msg := &multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()}
+	b, err := protojson.Marshal(msg)
+	if err != nil {
+		logger.Error("unable to marshal message:", zap.Error(err))
+		return
+	}
+	c.WriteMessage(websocket.BinaryMessage, b)
 }
 
 func (s *WebhookServer) GetMessageChan() chan *multiplayer_v1.Message {

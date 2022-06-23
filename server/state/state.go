@@ -69,7 +69,7 @@ func (gs *GameState) Broadcast() {
 		return
 	}
 	logger.Info("broadcast game state", zap.String("state", string(b)))
-	gs.Server.Broadcast(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_UPDATE_GAME_STATE, Data: string(b)})
+	gs.Server.BroadcastBinary(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_UPDATE_GAME_STATE, Data: string(b)})
 }
 
 func (gs *GameState) MessageHandler(msg *multiplayer_v1.Message) {
