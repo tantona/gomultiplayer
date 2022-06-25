@@ -51,6 +51,7 @@ func (gs *GameState) RemovePlayer(id string) {
 }
 
 func (gs *GameState) UpdatePlayerDataHandler(msg *multiplayer_v1.Message) {
+	logger.Debug("GameState.UpdatePlayerDataHandler", zap.Any("msg", msg))
 	data, err := messageToPlayerData(msg.Data)
 	if err != nil {
 		logger.Error("unable to parse game state")
@@ -73,7 +74,7 @@ func (gs *GameState) Broadcast() {
 }
 
 func (gs *GameState) MessageHandler(msg *multiplayer_v1.Message) {
-	logger.Info("received message", zap.Any("msg", msg))
+	logger.Info("GameState.MessageHandler", zap.Any("msg", msg))
 
 	if msg.Type == multiplayer_v1.MessageType_UPDATE_PLAYER_DATA {
 		gs.UpdatePlayerDataHandler(msg)

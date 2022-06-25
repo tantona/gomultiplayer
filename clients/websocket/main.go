@@ -1,4 +1,4 @@
-package main
+package websocket
 
 import (
 	"encoding/json"
@@ -31,7 +31,7 @@ func createUpdatePlayerMsg(data *state.PlayerData) (*multiplayer_v1.Message, err
 	return &multiplayer_v1.Message{Type: multiplayer_v1.MessageType_UPDATE_PLAYER_DATA, Data: string(b)}, nil
 }
 
-func main() {
+func Run() {
 	fake := faker.New()
 	username := fake.Internet().User()
 

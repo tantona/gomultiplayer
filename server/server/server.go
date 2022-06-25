@@ -1,10 +1,19 @@
 package server
 
-import multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
+type ServerType = int64
 
-func New() Server {
-	return &WebhookServer{
-		MessageChan: make(chan *multiplayer_v1.Message),
-		ClientChan:  make(chan *Client),
+const (
+	SERVER_GRPC = iota
+	SERVER_WEBSOCKET
+)
+
+func New(st ServerType) Server {
+	switch st {
+	case SERVER_GRPC:
+		return newGRPCServer()
+	case SERVER_WEBSOCKET:
+		return newWebsocketServer()
 	}
+
+	return nil
 }

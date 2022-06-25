@@ -9,8 +9,11 @@ plugins:
   - name: go
     out: gen/proto/go
     opt: paths=source_relative
-  # - name: go-grpc
-  #   out: gen/proto/go
-  #   opt:
-  #     - paths=source_relative
-  #     - require_unimplemented_servers=false
+  - name: go-grpc
+    out: gen/proto/go
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  - name: ts
+    path: /Users/alexandertanton/.nvm/versions/node/v16.14.0/bin/protoc-gen-ts
+    out: gen/proto/ts

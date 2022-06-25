@@ -18,3 +18,15 @@ message Message {
   string data = 2;
   string client_id = 3;
 }
+
+message SendMessageRequest {
+  Message message = 1;
+}
+message SendMessageResponse {}
+
+service MessageService {
+  rpc GetMessageStream(GetMessageStreamRequest) returns (stream Message) {}
+  rpc SendMessage(SendMessageRequest) returns (stream SendMessageResponse) {}
+}
+
+message GetMessageStreamRequest {}
