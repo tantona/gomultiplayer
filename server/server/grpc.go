@@ -2,11 +2,11 @@ package server
 
 import (
 	"net"
+	"sync"
 	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 	"tantona/gomultiplayer/server/logging"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -14,22 +14,45 @@ import (
 var grpcLogger = logging.New("grpcLogger")
 
 type GRPCServer struct {
-	MessageChan chan *multiplayer_v1.Message
-	out         chan *multiplayer_v1.Message
+	MessageChan   chan *multiplayer_v1.Message
+	mut           sync.RWMutex
+	streams       map[uuid.UUID]multiplayer_v1.MessageService_GetMessageStreamServer
+	endStreamChan chan uuid.UUID
 }
 
 func (s *GRPCServer) Broadcast(message *multiplayer_v1.Message) {
 	grpcLogger.Info("GRPCServer.Broadcast", zap.Any("req", message))
-	// s.MessageChan <- message
+
+	for clientID, stream := range s.streams {
+		if err := stream.Send(message); err != nil {
+			grpcLogger.Error("Broadcast: unable to send message to client", zap.Stringer("clientId", clientID), zap.Any("msg", message))
+		}
+	}
 }
 
 func (s *GRPCServer) BroadcastBinary(message *multiplayer_v1.Message) {
 	grpcLogger.Info("GRPCServer.BroadcastBinary", zap.Any("req", message))
-	s.out <- message
+	for clientId, stream := range s.streams {
+		if err := stream.Send(message); err != nil {
+			grpcLogger.Error("BroadcastBinary: unable to send message to client", zap.Stringer("clientId", clientId), zap.Any("msg", message))
+		}
+		grpcLogger.Info("GRPCServer.BroadcastBinary: sent message to client", zap.Stringer("clientId", clientId))
+	}
 }
 
-func (s *GRPCServer) AddClient(*websocket.Conn) uuid.UUID {
-	return uuid.UUID{}
+func (s *GRPCServer) addClient(stream multiplayer_v1.MessageService_GetMessageStreamServer) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+	clientId := uuid.New()
+	s.streams[clientId] = stream
+	wsLogger.Debug("ADDED CLIENT", zap.Stringer("id", clientId))
+
+	msg := &multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()}
+	if err := stream.Send(msg); err != nil {
+		grpcLogger.Error("unable to send message", zap.Error(err))
+	}
+
+	return nil
 }
 
 func (s *GRPCServer) GetMessageChan() chan *multiplayer_v1.Message {
@@ -57,17 +80,23 @@ func (s *GRPCServer) SendMessage(req *multiplayer_v1.SendMessageRequest, srv mul
 	return srv.Send(&multiplayer_v1.SendMessageResponse{})
 }
 
-func (s *GRPCServer) GetMessageStream(req *multiplayer_v1.GetMessageStreamRequest, srv multiplayer_v1.MessageService_GetMessageStreamServer) error {
+func (s *GRPCServer) GetMessageStream(req *multiplayer_v1.GetMessageStreamRequest, stream multiplayer_v1.MessageService_GetMessageStreamServer) error {
 	grpcLogger.Info("GRPCServer.GetMessageStream", zap.Any("req", req))
+
+	if err := s.addClient(stream); err != nil {
+		grpcLogger.Error("unable to add client", zap.Error(err))
+		return err
+	}
 
 	for {
 		select {
-		case msg := <-s.out:
-			grpcLogger.Info("GRPCServer.GetMessageStream.read", zap.Any("msg", msg))
-			if err := srv.Send(msg); err != nil {
-				grpcLogger.Error("unable to send message", zap.Error(err))
-				return err
-			}
+		case clientId := <-s.endStreamChan:
+			grpcLogger.Info("GRPCServer.endStreamChan.read", zap.Stringer("clientId", clientId))
+			return nil
+			// if err := stream.Send(msg); err != nil {
+			// 	grpcLogger.Error("unable to send message", zap.Error(err))
+			// 	return err
+			// }
 		}
 	}
 
@@ -79,7 +108,8 @@ func (s *GRPCServer) Run() {
 
 func newGRPCServer() *GRPCServer {
 	return &GRPCServer{
-		MessageChan: make(chan *multiplayer_v1.Message),
-		out:         make(chan *multiplayer_v1.Message),
+		MessageChan:   make(chan *multiplayer_v1.Message),
+		streams:       make(map[uuid.UUID]multiplayer_v1.MessageService_GetMessageStreamServer),
+		endStreamChan: make(chan uuid.UUID),
 	}
 }

@@ -20,7 +20,8 @@ message Message {
 }
 
 message SendMessageRequest {
-  Message message = 1;
+  string client_id = 1;
+  Message message = 2;
 }
 message SendMessageResponse {}
 

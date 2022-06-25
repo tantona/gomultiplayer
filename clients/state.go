@@ -1,9 +1,10 @@
-package websocket
+package main
 
 import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"tantona/gomultiplayer/clients/gamestate"
 	multiplayer_v1 "tantona/gomultiplayer/gen/proto/go/multiplayer/v1"
 	"tantona/gomultiplayer/server/state"
 
@@ -11,10 +12,19 @@ import (
 	"go.uber.org/zap"
 )
 
+func ToGameState(data string) (*gamestate.GameState, error) {
+	gs := &gamestate.GameState{}
+	if err := json.Unmarshal([]byte(data), gs); err != nil {
+		return nil, err
+	}
+
+	return gs, nil
+}
+
 type ClientState struct {
 	mut       sync.Mutex
 	Id        uuid.UUID
-	GameState *GameState
+	GameState *gamestate.GameState
 }
 
 func (c *ClientState) Print() {
@@ -36,7 +46,7 @@ func (c *ClientState) SetClientId(id uuid.UUID) {
 	c.Id = id
 }
 
-func (c *ClientState) SetGameState(gs *GameState) {
+func (c *ClientState) SetGameState(gs *gamestate.GameState) {
 	c.mut.Lock()
 	defer c.mut.Unlock()
 	for id, player := range gs.Players {

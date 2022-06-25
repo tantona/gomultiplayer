@@ -150,7 +150,7 @@ func (s *WebhookServer) startHttpServer() {
 	}
 }
 
-func (s *WebhookServer) AddClient(conn *websocket.Conn) uuid.UUID {
+func (s *WebhookServer) addClient(conn *websocket.Conn) uuid.UUID {
 	id := uuid.New()
 	wsLogger.Debug("ADDED CLIENT", zap.String("id", id.String()))
 	s.ClientChan <- &Client{
@@ -168,7 +168,7 @@ func (s *WebhookServer) addClientHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	clientId := s.AddClient(c)
+	clientId := s.addClient(c)
 
 	c.WriteJSON(&multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()})
 }
@@ -180,7 +180,7 @@ func (s *WebhookServer) addClientHandlerBinary(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	clientId := s.AddClient(c)
+	clientId := s.addClient(c)
 	msg := &multiplayer_v1.Message{Type: multiplayer_v1.MessageType_SET_CLIENT_ID, Data: clientId.String()}
 	b, err := protojson.Marshal(msg)
 	if err != nil {

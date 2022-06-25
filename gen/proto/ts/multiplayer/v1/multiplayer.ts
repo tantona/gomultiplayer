@@ -130,26 +130,40 @@ export namespace multiplayer.v1 {
     export class SendMessageRequest extends pb_1.Message {
         #one_of_decls: number[][] = [];
         constructor(data?: any[] | {
+            client_id?: string;
             message?: Message;
         }) {
             super();
             pb_1.Message.initialize(this, Array.isArray(data) ? data : [], 0, -1, [], this.#one_of_decls);
             if (!Array.isArray(data) && typeof data == "object") {
+                if ("client_id" in data && data.client_id != undefined) {
+                    this.client_id = data.client_id;
+                }
                 if ("message" in data && data.message != undefined) {
                     this.message = data.message;
                 }
             }
         }
+        get client_id() {
+            return pb_1.Message.getField(this, 1) as string;
+        }
+        set client_id(value: string) {
+            pb_1.Message.setField(this, 1, value);
+        }
         get message() {
-            return pb_1.Message.getWrapperField(this, Message, 1) as Message;
+            return pb_1.Message.getWrapperField(this, Message, 2) as Message;
         }
         set message(value: Message) {
-            pb_1.Message.setWrapperField(this, 1, value);
+            pb_1.Message.setWrapperField(this, 2, value);
         }
         static fromObject(data: {
+            client_id?: string;
             message?: ReturnType<typeof Message.prototype.toObject>;
         }): SendMessageRequest {
             const message = new SendMessageRequest({});
+            if (data.client_id != null) {
+                message.client_id = data.client_id;
+            }
             if (data.message != null) {
                 message.message = Message.fromObject(data.message);
             }
@@ -157,8 +171,12 @@ export namespace multiplayer.v1 {
         }
         toObject() {
             const data: {
+                client_id?: string;
                 message?: ReturnType<typeof Message.prototype.toObject>;
             } = {};
+            if (this.client_id != null) {
+                data.client_id = this.client_id;
+            }
             if (this.message != null) {
                 data.message = this.message.toObject();
             }
@@ -168,8 +186,10 @@ export namespace multiplayer.v1 {
         serialize(w: pb_1.BinaryWriter): void;
         serialize(w?: pb_1.BinaryWriter): Uint8Array | void {
             const writer = w || new pb_1.BinaryWriter();
+            if (typeof this.client_id === "string" && this.client_id.length)
+                writer.writeString(1, this.client_id);
             if (this.message !== undefined)
-                writer.writeMessage(1, this.message, () => this.message.serialize(writer));
+                writer.writeMessage(2, this.message, () => this.message.serialize(writer));
             if (!w)
                 return writer.getResultBuffer();
         }
@@ -180,6 +200,9 @@ export namespace multiplayer.v1 {
                     break;
                 switch (reader.getFieldNumber()) {
                     case 1:
+                        message.client_id = reader.readString();
+                        break;
+                    case 2:
                         reader.readMessage(message.message, () => message.message = Message.deserialize(reader));
                         break;
                     default: reader.skipField();
