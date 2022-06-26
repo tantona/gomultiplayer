@@ -1,11 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { AppContainer } from "./App";
+import { Pixi } from "./components/Pixi";
 import "./index.css";
 
 ReactDOM.render(
   <React.StrictMode>
-    <AppContainer />
+    <Pixi />
   </React.StrictMode>,
   document.getElementById("root")
 );

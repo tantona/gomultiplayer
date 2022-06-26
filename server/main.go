@@ -13,7 +13,7 @@ import (
 var logger = logging.New("main")
 
 func main() {
-	server := server.New(server.SERVER_GRPC)
+	server := server.New(server.SERVER_WEBSOCKET)
 	s := state.New(server)
 
 	interrupt := make(chan os.Signal, 1)
