@@ -16,9 +16,9 @@ type PlayerData struct {
 	Name  string `json:"name"`
 	Score int    `json:"score"`
 
-	X     int    `json:"x"`
-	Y     int    `json:"y"`
-	Color string `json:"color"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	Color string  `json:"color"`
 }
 
 func messageToPlayerData(data string) (*PlayerData, error) {
@@ -54,7 +54,8 @@ func (gs *GameState) UpdatePlayerDataHandler(msg *multiplayer_v1.Message) {
 	logger.Debug("GameState.UpdatePlayerDataHandler", zap.Any("msg", msg))
 	data, err := messageToPlayerData(msg.Data)
 	if err != nil {
-		logger.Error("unable to parse game state")
+		logger.Error("unable to parse game state", zap.String("msg.Data", msg.Data))
+		return
 	}
 	logger.Debug("update player data", zap.Any("player", data))
 

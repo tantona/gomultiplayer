@@ -1,3 +1,5 @@
+import { multiplayer } from "../generated/multiplayer/v1/multiplayer";
+
 const MESSAGE_TYPES = {
   UNSPECIFIED: 0,
   UPDATE_PLAYER_DATA: 1,
@@ -24,20 +26,22 @@ export interface IPlayerData {
 }
 
 const createUpdatePlayerDataMessage = (data: IPlayerData) => {
-  return JSON.stringify({
-    type: MESSAGE_TYPES.UPDATE_PLAYER_DATA,
+  const msg = new multiplayer.v1.Message({
+    type: multiplayer.v1.MessageType.UPDATE_PLAYER_DATA,
     data: JSON.stringify(data),
   });
+
+  return JSON.stringify(msg.toObject());
 };
 
 export class WebsocketClient {
   private websocket: WebSocket;
 
-  constructor() {
-    this.websocket = new WebSocket("ws://localhost:3000/wsb");
+  constructor(url: string) {
+    this.websocket = new WebSocket(url);
 
     this.websocket.onopen = (e: Event) => {
-      //   console.log("opened connection", e);
+      this._onConnect();
     };
 
     this.websocket.onmessage = (e: MessageEvent<any>) => {
@@ -50,17 +54,47 @@ export class WebsocketClient {
   }
 
   handleMessage = (data: any) => {
-    // console.log(data);
+    const msg = JSON.parse(data);
+    switch (msg.type) {
+      case "UPDATE_GAME_STATE":
+        this._onUpdateGameState(JSON.parse(msg.data));
+        break;
+      case "SET_CLIENT_ID":
+        this._onSetClientId(msg.data);
+        break;
+      default:
+        console.error("no handler for message type ", msg.type);
+    }
   };
 
-  public sendBinary = (msg: string) => {
+  private send = (msg: string) => {
     const bytes = new TextEncoder().encode(msg);
     const blob = new Blob([bytes]);
     this.websocket.send(blob);
   };
 
-  public update = (data: IPlayerData) => {
+  public updatePlayerState = (data: IPlayerData) => {
     const msg = createUpdatePlayerDataMessage(data);
-    this.sendBinary(msg);
+    this.send(msg);
+  };
+
+  private _onConnect: () => void = () => console.log("onConnect not implemented");
+  private _onUpdateGameState: (data: any) => void = () => console.log("onUpdateGameState not implemented");
+  private _onSetClientId: (data: any) => void = () => console.log("onSetClientId not implemented");
+
+  public onConnect: RegisterOnConnectHandler = (fn) => {
+    this._onConnect = fn;
+    return this;
+  };
+  public onUpdateGameState: RegisterCallBackHandler<any> = (fn) => {
+    this._onUpdateGameState = fn;
+    return this;
+  };
+  public onSetClientId: RegisterCallBackHandler<any> = (fn) => {
+    this._onSetClientId = fn;
+    return this;
   };
 }
+
+type RegisterOnConnectHandler = (fn: () => void) => WebsocketClient;
+type RegisterCallBackHandler<T> = (fn: (data: T) => void) => WebsocketClient;
